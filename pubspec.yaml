@@ -1,0 +1,16 @@
+name: simple_cas
+description: A minimal computer algebra system
+version: 0.0.1
+homepage: https://github.com/jackd/simple_cas
+author: Dominic Jack <thedomjack@gmail.com.com>
+
+environment:
+  sdk: '>=2.0.0-dev.68.0 <3.0.0'
+
+dependencies:
+  quiver: 2.0.0
+  antlr4dart:
+   git: git://github.com/jackd/antlr4dart-runtime.git
+
+dev_dependencies:
+  test: ^1.0.0
