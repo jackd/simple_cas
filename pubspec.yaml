@@ -8,9 +8,10 @@ environment:
   sdk: '>=2.0.0-dev.68.0 <3.0.0'
 
 dependencies:
-  quiver: 2.0.0
+  quiver: ^2.0.0
   antlr4dart:
    git: git://github.com/jackd/antlr4dart-runtime.git
+   # path: ../antlr4dart-runtime
 
 dev_dependencies:
   test: ^1.0.0

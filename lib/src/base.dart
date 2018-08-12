@@ -59,6 +59,7 @@ abstract class Scalar extends Expression {
 
   Scalar simplify();
   Scalar substitute(Map<ScalarSymbol, Scalar> map);
+  Scalar diff(ScalarSymbol x);
 }
 
 enum BinaryOp { sum, product, power }
@@ -106,6 +107,7 @@ class Sum extends BinaryOperator {
   Sum _constructor(Scalar left, Scalar right) => Sum(left, right);
 
   String toString() => '$left + $right';
+  Scalar diff(ScalarSymbol x) => left.diff(x) + right.diff(x);
 }
 
 class Product extends BinaryOperator {
@@ -118,6 +120,7 @@ class Product extends BinaryOperator {
   String _bracketed(Scalar x) => x is Sum ? '($x)' : x.toString();
 
   String toString() => '${_bracketed(left)} * ${_bracketed(right)}';
+  Scalar diff(ScalarSymbol x) => left.diff(x) * right + left * right.diff(x);
 }
 
 class Power extends BinaryOperator {
@@ -131,6 +134,9 @@ class Power extends BinaryOperator {
       x is Sum || x is Product ? '($x)' : x.toString();
 
   String toString() => '${_bracketed(left)} ^ ${_bracketed(right)}';
+
+  Scalar diff(ScalarSymbol x) => asExp().diff(x);
+  Exp asExp() => exp(ln(left)*right);
 }
 
 class Num<T extends num> extends Scalar {
@@ -145,6 +151,8 @@ class Num<T extends num> extends Scalar {
   Num<T> substitute(Map<ScalarSymbol, Scalar> map) => this;
   Iterable<Null> get _children => const [];
   String toString() => value.toString();
+
+  Int diff(ScalarSymbol x) => zero;
 }
 
 class Float extends Num<double> {
@@ -168,77 +176,93 @@ class ScalarSymbol extends Scalar {
       other is ScalarSymbol && other.symbol == symbol;
 
   String toString() => symbol;
+  Int diff(ScalarSymbol x) => x == this? one: zero;
 }
 
 const negativeOne = Int(-1);
 const zero = Int(0);
 const one = Int(1);
+const two = Int(2);
 
-// enum FunctionId { sin, cos, tan, exp }
-//
-// abstract class ScalarFunction extends Scalar {
-//   final Scalar arg;
-//   const ScalarFunction(this.arg);
-//   FunctionId get _fId;
-//   int get hashCode => hash2(arg, _fId);
-//   bool operator ==(Object other) =>
-//       other is ScalarFunction && other._fId == _fId && other.arg == arg;
-//   num _numOp(num value);
-//   ScalarFunction _constructor(Scalar arg);
-//
-//   @override
-//   Iterable<Scalar> get _children => [arg];
-//
-//   @override
-//   Scalar simplify() {
-//     var argVal = arg.simplify();
-//     if (argVal is Num) {
-//       return Num(_numOp(argVal.value));
-//     } else {
-//       return _constructor(argVal);
-//     }
-//   }
-//
-//   @override
-//   Scalar substitute(Map<ScalarSymbol, Scalar> map) =>
-//       _constructor(arg.substitute(map));
-// }
-//
-// class Sin extends ScalarFunction {
-//   FunctionId get _fId => FunctionId.sin;
-//   const Sin(Scalar arg) : super(arg);
-//   num _numOp(num value) => math.sin(value);
-//
-//   Sin _constructor(Scalar arg) => Sin(arg);
-// }
-//
-// class Cos extends ScalarFunction {
-//   FunctionId get _fId => FunctionId.cos;
-//   const Cos(Scalar arg) : super(arg);
-//   num _numOp(num value) => math.cos(value);
-//
-//   Cos _constructor(Scalar arg) => Cos(arg);
-// }
-//
-// class Tan extends ScalarFunction {
-//   FunctionId get _fId => FunctionId.tan;
-//   const Tan(Scalar arg) : super(arg);
-//   num _numOp(num value) => math.tan(value);
-//
-//   Tan _constructor(Scalar arg) => Tan(arg);
-// }
-//
-// class Exp extends ScalarFunction {
-//   FunctionId get _fId => FunctionId.exp;
-//   const Exp(Scalar arg) : super(arg);
-//   num _numOp(num value) => math.exp(value);
-//
-//   Exp _constructor(Scalar arg) => Exp(arg);
-// }
+enum FunctionId { sin, cos, tan, exp, ln }
+
+abstract class ScalarFunction extends Scalar {
+  final Scalar arg;
+  const ScalarFunction(this.arg);
+  FunctionId get _fId;
+  int get hashCode => hash2(arg, _fId);
+  bool operator ==(Object other) =>
+      other is ScalarFunction && other._fId == _fId && other.arg == arg;
+  num _numOp(num value);
+  ScalarFunction _constructor(Scalar arg);
+
+  @override
+  Iterable<Scalar> get _children => [arg];
+
+  @override
+  Scalar simplify() {
+    var argVal = arg.simplify();
+    if (argVal is Num) {
+      return Num(_numOp(argVal.value));
+    } else {
+      return _constructor(argVal);
+    }
+  }
+
+  @override
+  Scalar substitute(Map<ScalarSymbol, Scalar> map) =>
+      _constructor(arg.substitute(map));
+}
+
+class Sin extends ScalarFunction {
+  FunctionId get _fId => FunctionId.sin;
+  const Sin(Scalar arg) : super(arg);
+  num _numOp(num value) => math.sin(value);
+
+  Sin _constructor(Scalar arg) => Sin(arg);
+  Scalar diff(ScalarSymbol x) => cos(x);
+}
+
+class Cos extends ScalarFunction {
+  FunctionId get _fId => FunctionId.cos;
+  const Cos(Scalar arg) : super(arg);
+  num _numOp(num value) => math.cos(value);
+
+  Cos _constructor(Scalar arg) => Cos(arg);
+  Scalar diff(ScalarSymbol x) => -sin(arg);
+}
+
+class Tan extends ScalarFunction {
+  FunctionId get _fId => FunctionId.tan;
+  const Tan(Scalar arg) : super(arg);
+  num _numOp(num value) => math.tan(value);
+
+  Tan _constructor(Scalar arg) => Tan(arg);
+  Scalar diff(ScalarSymbol x) => one + this.pow(two);
+}
+
+class Exp extends ScalarFunction {
+  FunctionId get _fId => FunctionId.exp;
+  const Exp(Scalar arg) : super(arg);
+  num _numOp(num value) => math.exp(value);
+
+  Exp _constructor(Scalar arg) => Exp(arg);
+  Scalar diff(ScalarSymbol x) => arg.diff(x) * this;
+}
+
+class Ln extends ScalarFunction {
+  FunctionId get _fId => FunctionId.ln;
+  const Ln(Scalar arg) : super(arg);
+  num _numOp(num value) => math.log(value);
+
+  Ln _constructor(Scalar arg) => Ln(arg);
+  Scalar diff(ScalarSymbol x) => arg.diff(x) / arg;
+}
 
 Sum sum(Iterable<Scalar> args) => args.reduce((a, b) => Sum(a, b));
 Product product(Iterable<Scalar> args) => args.reduce((a, b) => Product(a, b));
-// Sin sin(Scalar x) => Sin(x);
-// Cos cos(Scalar x) => Cos(x);
-// Tan tan(Scalar x) => Tan(x);
-// Exp exp(Scalar x) => Exp(x);
+Sin sin(Scalar x) => Sin(x);
+Cos cos(Scalar x) => Cos(x);
+Tan tan(Scalar x) => Tan(x);
+Exp exp(Scalar x) => Exp(x);
+Ln ln(Scalar x) => Ln(x);
