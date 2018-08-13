@@ -2,10 +2,12 @@
 
 part of cas.parser.antlr;
 
+
 /// This class provides an empty implementation of [CasListener],
-/// which can be extended to create a listener which only needs to handle
+/// which can be extended to create a listener which only needs to handle 
 /// a subset of the available methods.
 class CasBaseListener implements CasListener {
+
   /// The default implementation does nothing.
   void enterSymbolLiteral(SymbolLiteralContext context) {}
 
@@ -43,10 +45,16 @@ class CasBaseListener implements CasListener {
   void exitScalarPower(ScalarPowerContext context) {}
 
   /// The default implementation does nothing.
-  void enterScalarFunction(ScalarFunctionContext context) {}
+  void enterFunctionAssignment(FunctionAssignmentContext context) {}
 
   /// The default implementation does nothing.
-  void exitScalarFunction(ScalarFunctionContext context) {}
+  void exitFunctionAssignment(FunctionAssignmentContext context) {}
+
+  /// The default implementation does nothing.
+  void enterScalarAssignment(ScalarAssignmentContext context) {}
+
+  /// The default implementation does nothing.
+  void exitScalarAssignment(ScalarAssignmentContext context) {}
 
   /// The default implementation does nothing.
   void enterScalarProduct(ScalarProductContext context) {}
@@ -55,22 +63,16 @@ class CasBaseListener implements CasListener {
   void exitScalarProduct(ScalarProductContext context) {}
 
   /// The default implementation does nothing.
-  void enterCondition(ConditionContext context) {}
-
-  /// The default implementation does nothing.
-  void exitCondition(ConditionContext context) {}
-
-  /// The default implementation does nothing.
-  void enterFunctionId(FunctionIdContext context) {}
-
-  /// The default implementation does nothing.
-  void exitFunctionId(FunctionIdContext context) {}
-
-  /// The default implementation does nothing.
   void enterMulOp(MulOpContext context) {}
 
   /// The default implementation does nothing.
   void exitMulOp(MulOpContext context) {}
+
+  /// The default implementation does nothing.
+  void enterFunctionCall(FunctionCallContext context) {}
+
+  /// The default implementation does nothing.
+  void exitFunctionCall(FunctionCallContext context) {}
 
   /// The default implementation does nothing.
   void enterFloatLiteral(FloatLiteralContext context) {}

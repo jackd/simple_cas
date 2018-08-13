@@ -2,6 +2,8 @@ library simple_cas.base;
 
 import 'dart:math' as math;
 import 'package:quiver/core.dart';
+import 'package:built_collection/built_collection.dart';
+// import 'package:meta/meta.dart';
 
 abstract class Expression {
   Iterable<Scalar> get _children;
@@ -14,35 +16,35 @@ abstract class Expression {
   const Expression();
 }
 
-enum CondType { less, equal, greater }
+// enum CondType { less, equal, greater }
+//
+// abstract class Condition extends Expression {
+//   const Condition();
+// }
+//
+// abstract class Comparison extends Condition {
+//   final Scalar left;
+//   final Scalar right;
+//   const Comparison(this.left, this.right);
+//
+//   bool _numOp(num left, num right);
+//   Iterable<Scalar> get _children => [left, right];
+// }
 
-abstract class Condition extends Expression {
-  const Condition();
-}
-
-abstract class Comparison extends Condition {
-  final Scalar left;
-  final Scalar right;
-  const Comparison(this.left, this.right);
-
-  bool _numOp(num left, num right);
-  Iterable<Scalar> get _children => [left, right];
-}
-
-class LessThan extends Comparison {
-  const LessThan(Scalar left, Scalar right) : super(left, right);
-  bool _numOp(num left, num right) => left < right;
-}
-
-class GreaterThan extends Comparison {
-  const GreaterThan(Scalar left, Scalar right) : super(left, right);
-  bool _numOp(num left, num right) => left > right;
-}
-
-class Equal extends Comparison {
-  const Equal(Scalar left, Scalar right) : super(left, right);
-  bool _numOp(num left, num right) => left == right;
-}
+// class LessThan extends Comparison {
+//   const LessThan(Scalar left, Scalar right) : super(left, right);
+//   bool _numOp(num left, num right) => left < right;
+// }
+//
+// class GreaterThan extends Comparison {
+//   const GreaterThan(Scalar left, Scalar right) : super(left, right);
+//   bool _numOp(num left, num right) => left > right;
+// }
+//
+// class Equal extends Comparison {
+//   const Equal(Scalar left, Scalar right) : super(left, right);
+//   bool _numOp(num left, num right) => left == right;
+// }
 
 abstract class Scalar extends Expression {
   const Scalar();
@@ -72,6 +74,7 @@ abstract class BinaryOperator extends Scalar {
   const BinaryOperator(this.left, this.right);
 
   num _numOp(num x, num y);
+  Int get _identity;
 
   BinaryOperator _constructor(Scalar left, Scalar right);
 
@@ -85,13 +88,17 @@ abstract class BinaryOperator extends Scalar {
   Iterable<Scalar> get _children => [left, right];
   Iterable<Scalar> get args => _children;
 
-  Scalar simplify() {
-    var leftOp = left.simplify();
-    var rightOp = right.simplify();
-    if (leftOp is Num && rightOp is Num) {
-      return Num(_numOp(leftOp.value, rightOp.value));
+  Scalar simplify() => _simplifySimpleArgs(left.simplify(), right.simplify());
+
+  Scalar _simplifySimpleArgs(Scalar left, Scalar right) {
+    if (left == _identity) {
+      return right;
+    } else if (right == _identity) {
+      return left;
+    } else if (left is Num && right is Num) {
+      return Num(_numOp(left.value, right.value));
     } else {
-      return _constructor(leftOp, rightOp);
+      return _constructor(left, right);
     }
   }
 
@@ -106,8 +113,19 @@ class Sum extends BinaryOperator {
   num _numOp(num x, num y) => x + y;
   Sum _constructor(Scalar left, Scalar right) => Sum(left, right);
 
-  String toString() => '$left + $right';
+  String toString() {
+    var rString = right.toString();
+    if (rString[0] == '-') {
+      return '$left - ${rString.substring(1)}';
+    } else {
+      return '$left + $rString';
+    }
+  }
+
   Scalar diff(ScalarSymbol x) => left.diff(x) + right.diff(x);
+
+  @override
+  Int get _identity => zero;
 }
 
 class Product extends BinaryOperator {
@@ -119,8 +137,23 @@ class Product extends BinaryOperator {
 
   String _bracketed(Scalar x) => x is Sum ? '($x)' : x.toString();
 
-  String toString() => '${_bracketed(left)} * ${_bracketed(right)}';
+  String toString() {
+    if (left == negativeOne){
+      return '(-$right)';
+    } else {
+      var lString = _bracketed(left);
+      var rString = _bracketed(right);
+       if (rString.length > 2 && rString.substring(0, 2) == '1/') {
+         return '$lString / ${rString.substring(2)}';
+       } else {
+         return '$lString * $rString';
+       }
+    }
+  }
   Scalar diff(ScalarSymbol x) => left.diff(x) * right + left * right.diff(x);
+
+  @override
+  Int get _identity => one;
 }
 
 class Power extends BinaryOperator {
@@ -133,10 +166,15 @@ class Power extends BinaryOperator {
   String _bracketed(Scalar x) =>
       x is Sum || x is Product ? '($x)' : x.toString();
 
-  String toString() => '${_bracketed(left)} ^ ${_bracketed(right)}';
+  String toString() => right == negativeOne
+      ? '1/${_bracketed(left)}'
+      : '${_bracketed(left)} ^ ${_bracketed(right)}';
 
   Scalar diff(ScalarSymbol x) => asExp().diff(x);
-  Exp asExp() => exp(ln(left)*right);
+  Exp asExp() => exp(ln(left) * right);
+
+  @override
+  Int get _identity => null;
 }
 
 class Num<T extends num> extends Scalar {
@@ -159,6 +197,12 @@ class Float extends Num<double> {
   const Float(double value) : super._create(value);
 }
 
+class SpecialFloat extends Float {
+  final String symbol;
+  const SpecialFloat(this.symbol, double value) : super(value);
+  String toString() => symbol;
+}
+
 class Int extends Num<int> {
   const Int(int value) : super._create(value);
 }
@@ -176,13 +220,14 @@ class ScalarSymbol extends Scalar {
       other is ScalarSymbol && other.symbol == symbol;
 
   String toString() => symbol;
-  Int diff(ScalarSymbol x) => x == this? one: zero;
+  Int diff(ScalarSymbol x) => x == this ? one : zero;
 }
 
 const negativeOne = Int(-1);
 const zero = Int(0);
 const one = Int(1);
 const two = Int(2);
+const pi = SpecialFloat('pi', math.pi);
 
 enum FunctionId { sin, cos, tan, exp, ln }
 
@@ -258,6 +303,131 @@ class Ln extends ScalarFunction {
   Ln _constructor(Scalar arg) => Ln(arg);
   Scalar diff(ScalarSymbol x) => arg.diff(x) / arg;
 }
+
+class AnonymousScalarFunction extends Scalar {
+  final BuiltList<ScalarSymbol> argSymbols;
+  final Scalar definition;
+  const AnonymousScalarFunction(this.argSymbols, this.definition);
+  bool operator ==(Object other) =>
+      other is AnonymousScalarFunction &&
+      other.argSymbols == argSymbols &&
+      other.definition == definition;
+  int get hashCode => hash2(argSymbols, definition);
+
+  bool isEquivalent(AnonymousScalarFunction other) =>
+      definition ==
+      other.definition
+          .substitute(Map.fromIterables(other.argSymbols, argSymbols));
+
+  @override
+  Iterable<Scalar> get _children => definition._children;
+
+  @override
+  Scalar diff(ScalarSymbol x) =>
+      AnonymousScalarFunction(argSymbols, definition.diff(x));
+
+  @override
+  Scalar simplify() =>
+      AnonymousScalarFunction(argSymbols, definition.simplify());
+
+  @override
+  Scalar substitute(Map<ScalarSymbol, Scalar> map) {
+    if (argSymbols.any((arg) => map.containsKey(arg))) {
+      throw ArgumentError('Cannot substitute anonymous function args');
+    }
+    return AnonymousScalarFunction(argSymbols, definition.substitute(map));
+  }
+
+  Scalar callWithArgs(Iterable<Scalar> args) =>
+      definition.substitute(Map.fromIterables(argSymbols, args));
+}
+
+class ScalarFunctionCall extends Scalar {
+  final ScalarSymbol symbol;
+  final BuiltList<Scalar> args;
+
+  const ScalarFunctionCall(this.symbol, this.args);
+
+  int get hashCode => hash2(symbol, args);
+  bool operator ==(Object other) =>
+      other is ScalarFunctionCall &&
+      other.symbol == symbol &&
+      other.args == args;
+
+  @override
+  Iterable<Scalar> get _children => [
+        [symbol],
+        args
+      ].expand((i) => i);
+
+  @override
+  Scalar diff(ScalarSymbol x) => throw UnimplementedError();
+
+  @override
+  Scalar simplify() => ScalarFunctionCall(
+      symbol, args.rebuild((b) => b.map((arg) => arg.simplify())));
+
+  @override
+  Scalar substitute(Map<ScalarSymbol, Scalar> map) {
+    if (map.containsKey(symbol)) {
+      var val = map[symbol];
+      if (val is AnonymousScalarFunction) {
+        return val.callWithArgs(args).substitute(map);
+      } else {
+        throw ArgumentError(
+            'Cannot substitute symbol which is not an AnonymousScalarFunction');
+      }
+    } else {
+      return ScalarFunctionCall(
+          symbol, args.rebuild((b) => b.map((arg) => arg.substitute(map))));
+    }
+  }
+}
+
+// class ScalarFunctionDefinition extends Scalar {
+//   final ScalarSymbol symbol;
+//   final BuiltList<ScalarSymbol> argSymbols;
+//   final Scalar definition;
+//
+//   bool operator ==(Object other) =>
+//       other is ScalarFunctionDefinition &&
+//       other.symbol == symbol &&
+//       other.argSymbols == argSymbols &&
+//       other.definition == definition;
+//
+//   int get hashCode => hash3(symbol, argSymbols, definition);
+//
+//   Scalar callWithArgs(Iterable<Scalar> argValues) {
+//     var map = Map<ScalarSymbol, Scalar>.fromIterables(argSymbols, argValues);
+//     return definition.substitute(map);
+//   }
+//
+//   const ScalarFunctionDefinition(this.symbol, this.argSymbols, this.definition);
+//
+//   @override
+//   @alwaysThrows
+//   Iterable<Scalar> get _children => throw UnimplementedError();
+//
+//   @override
+//   @alwaysThrows
+//   Scalar diff(ScalarSymbol x) => throw UnimplementedError();
+//
+//
+//   @override
+//   @alwaysThrows
+//   Scalar simplify() => throw UnimplementedError();
+//
+//   @override
+//   @alwaysThrows
+//   Scalar substitute(Map<ScalarSymbol, Scalar> map) => throw UnimplementedError();
+// }
+//
+// class ScalarFunctionCall extends Scalar {
+//   final ScalarSymbol symbol;
+//   final BuiltList<Scalar> argValues;
+//
+//   const ScalarFunctionCall(this.symbol, this.argValues);
+// }
 
 Sum sum(Iterable<Scalar> args) => args.reduce((a, b) => Sum(a, b));
 Product product(Iterable<Scalar> args) => args.reduce((a, b) => Product(a, b));

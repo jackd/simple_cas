@@ -1,6 +1,8 @@
 analyzer:
-#   exclude:
-#     - path/to/excluded/files/**
+  exclude:
+    - 'lib/src/parser/antlr4/*.dart'
+    - 'src/parser/antlr4/*.dart'
+    - 'parser/antlr4/*.dart'
 
 # Lint rules and documentation, see http://dart-lang.github.io/linter/lints
 linter:

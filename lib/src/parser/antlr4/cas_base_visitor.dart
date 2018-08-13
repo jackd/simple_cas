@@ -2,8 +2,9 @@
 
 part of cas.parser.antlr;
 
+
 /// This class provides an empty implementation of [CasVisitor],
-/// which can be extended to create a visitor which only needs to handle
+/// which can be extended to create a visitor which only needs to handle 
 /// a subset of the available methods.
 ///
 /// [T] is the return type of the visit operation. Use `void` for
@@ -15,13 +16,11 @@ class CasBaseVisitor<T> extends ParseTreeVisitor<T> implements CasVisitor<T> {
 
   /// The default implementation returns the result of calling
   /// [visitChildren] on [context].
-  T visitScalarUnaryPlusMinus(ScalarUnaryPlusMinusContext context) =>
-      visitChildren(context);
+  T visitScalarUnaryPlusMinus(ScalarUnaryPlusMinusContext context) => visitChildren(context);
 
   /// The default implementation returns the result of calling
   /// [visitChildren] on [context].
-  T visitBracketedScalar(BracketedScalarContext context) =>
-      visitChildren(context);
+  T visitBracketedScalar(BracketedScalarContext context) => visitChildren(context);
 
   /// The default implementation returns the result of calling
   /// [visitChildren] on [context].
@@ -37,8 +36,11 @@ class CasBaseVisitor<T> extends ParseTreeVisitor<T> implements CasVisitor<T> {
 
   /// The default implementation returns the result of calling
   /// [visitChildren] on [context].
-  T visitScalarFunction(ScalarFunctionContext context) =>
-      visitChildren(context);
+  T visitFunctionAssignment(FunctionAssignmentContext context) => visitChildren(context);
+
+  /// The default implementation returns the result of calling
+  /// [visitChildren] on [context].
+  T visitScalarAssignment(ScalarAssignmentContext context) => visitChildren(context);
 
   /// The default implementation returns the result of calling
   /// [visitChildren] on [context].
@@ -46,15 +48,11 @@ class CasBaseVisitor<T> extends ParseTreeVisitor<T> implements CasVisitor<T> {
 
   /// The default implementation returns the result of calling
   /// [visitChildren] on [context].
-  T visitCondition(ConditionContext context) => visitChildren(context);
-
-  /// The default implementation returns the result of calling
-  /// [visitChildren] on [context].
-  T visitFunctionId(FunctionIdContext context) => visitChildren(context);
-
-  /// The default implementation returns the result of calling
-  /// [visitChildren] on [context].
   T visitMulOp(MulOpContext context) => visitChildren(context);
+
+  /// The default implementation returns the result of calling
+  /// [visitChildren] on [context].
+  T visitFunctionCall(FunctionCallContext context) => visitChildren(context);
 
   /// The default implementation returns the result of calling
   /// [visitChildren] on [context].

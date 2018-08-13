@@ -1,15 +1,14 @@
 library cas.parser;
 
-// import 'package:built_collection/built_collection.dart';
+import 'dart:collection' show UnmodifiableMapView;
+
+import 'package:built_collection/built_collection.dart';
+
 import 'package:antlr4dart/antlr4dart.dart';
 import 'package:simple_cas/base.dart';
-// import 'package:cas/range.dart';
+
 import 'antlr4/antlr.dart';
-
 export 'antlr4/antlr.dart';
-
-// part 'tree_node.dart';
-// part 'text.dart';
 
 Num _simplifiedNegative(Num real) {
   if (real is Int) {
@@ -21,22 +20,17 @@ Num _simplifiedNegative(Num real) {
   }
 }
 
-abstract class ScalarFunction implements Scalar {
-  Scalar callWithArgs(List<Scalar> args,
-      [Map<String, Scalar> kwargs = const {}]);
-}
-
-class CasExpressionVisitor extends CasBaseVisitor<Expression> {
-  final Map<String, ScalarFunction> functionMap = Map<String, ScalarFunction>();
-
-  @override
-  Scalar visitBracketedScalar(BracketedScalarContext context) {
-    return visit(context.getScalar());
+class CasExpressionVisitor extends CasBaseVisitor<Scalar> {
+  CasExpressionVisitor._create(this._assignments, this.assignments);
+  factory CasExpressionVisitor() {
+    var _assignments = <ScalarSymbol, Scalar>{};
+    return CasExpressionVisitor._create(
+        _assignments, UnmodifiableMapView(_assignments));
   }
 
   @override
-  Condition visitCondition(ConditionContext context) {
-    throw new UnimplementedError();
+  Scalar visitBracketedScalar(BracketedScalarContext context) {
+    return context.getScalar().accept(this);
   }
 
   @override
@@ -45,40 +39,21 @@ class CasExpressionVisitor extends CasBaseVisitor<Expression> {
   }
 
   @override
-  Expression visitFunctionId(FunctionIdContext context) {
-    throw new UnimplementedError();
-  }
-
-  @override
-  Expression visitIntLiteral(IntLiteralContext context) {
+  Int visitIntLiteral(IntLiteralContext context) {
     return new Int(int.parse(context.text));
   }
 
   @override
-  Expression visitMulOp(MulOpContext context) {
-    throw new UnimplementedError();
-  }
-
-  @override
-  Expression visitScalarFunction(ScalarFunctionContext context) {
-    var fName = context.getFunctionId().text;
-    var args = context.getScalars().map((c) => visit(c)).toList();
-    return functionMap[fName].callWithArgs(args);
-  }
-
-  @override
-  Expression visitScalarPower(ScalarPowerContext context) {
-    var scalars = context.getScalars();
-    return (visit(scalars[0]) as Scalar).pow(visit(scalars[1]) as Scalar);
-  }
+  Scalar visitMulOp(MulOpContext context) =>
+      throw StateError('Cannot visit mulOp directly');
 
   @override
   Scalar visitScalarProduct(ScalarProductContext context) {
     var ops = <Scalar>[];
     var opContexts = context.getScalars();
     var ca = opContexts[0];
-    Scalar a = visit(ca);
-    Scalar b = visit(opContexts[1]);
+    Scalar a = ca.accept(this);
+    Scalar b = opContexts[1].accept(this);
     if (context.getMulOp().text == '/') {
       return a / b;
     } else {
@@ -98,13 +73,13 @@ class CasExpressionVisitor extends CasBaseVisitor<Expression> {
     var ops = <Scalar>[];
     var opContexts = context.getScalars();
     var ca = opContexts[0];
-    Scalar a = visit(ca);
+    Scalar a = ca.accept(this);
     if (ca is ScalarSumContext) {
       ops.addAll((a as Sum).args);
     } else {
       ops.add(a);
     }
-    Scalar b = visit(opContexts[1]);
+    Scalar b = opContexts[1].accept(this);
     if (context.getSumOp().text == '-') {
       if (opContexts[1] is BracketedScalarContext) {
         b = -b;
@@ -146,7 +121,7 @@ class CasExpressionVisitor extends CasBaseVisitor<Expression> {
   @override
   Scalar visitScalarUnaryPlusMinus(ScalarUnaryPlusMinusContext context) {
     var scalarContext = context.getScalar();
-    Scalar s = visit(scalarContext);
+    Scalar s = scalarContext.accept(this);
     if (scalarContext is! BracketedScalarContext && s is Num) {
       return _simplifiedNegative(s);
     } else {
@@ -155,13 +130,47 @@ class CasExpressionVisitor extends CasBaseVisitor<Expression> {
   }
 
   @override
-  Expression visitSumOp(SumOpContext context) {
-    throw new StateError('Cannot visit SumOpContext');
+  ScalarSymbol visitSymbolLiteral(SymbolLiteralContext context) {
+    return new ScalarSymbol(context.text);
   }
 
   @override
-  ScalarSymbol visitSymbolLiteral(SymbolLiteralContext context) {
-    return new ScalarSymbol(context.text);
+  AnonymousScalarFunction visitFunctionAssignment(
+      FunctionAssignmentContext context) {
+    var ids = context.getIDs().map((i) => i.text);
+    var iter = ids.iterator;
+    iter.moveNext();
+    var symbol = ScalarSymbol(iter.current);
+    var args = ListBuilder<Scalar>();
+    while (iter.moveNext()) {
+      args.add(ScalarSymbol(iter.current));
+    }
+    var definition = context.getScalar().accept(this) as Scalar;
+    var fn = AnonymousScalarFunction(args.build(), definition);
+    assign(symbol, fn);
+    return fn;
+  }
+
+  final Map<ScalarSymbol, Scalar> _assignments;
+  final UnmodifiableMapView<ScalarSymbol, Scalar> assignments;
+
+  void assign(ScalarSymbol symbol, Scalar definition) {
+    _assignments[symbol] = definition;
+  }
+
+  @override
+  Scalar visitScalarAssignment(ScalarAssignmentContext context) {
+    var lhs = ScalarSymbol(context.getID().text);
+    var rhs = context.getScalar().accept(this);
+    assign(lhs, rhs);
+    return rhs;
+  }
+
+  @override
+  ScalarFunctionCall visitFunctionCall(FunctionCallContext context) {
+    var symbol = ScalarSymbol(context.getID().text);
+    var scalars = context.getScalars().map((s) => s.accept(this));
+    return ScalarFunctionCall(symbol, BuiltList(scalars));
   }
 }
 
@@ -172,15 +181,9 @@ CasParser _getParser(String input) {
   return new CasParser(tokens);
 }
 
-ScalarContext stringToContext(String input) => _getParser(input).scalar();
+ScalarContext getScalarContext(String input) => _getParser(input).scalar();
 
-Scalar contextToScalar(ScalarContext context, [CasExpressionVisitor visitor]) {
-  visitor = visitor ?? new CasExpressionVisitor();
-  return visitor.visit(context) as Scalar;
-  // var walker = new ParseTreeWalker();
-  // var listener = new TreeToExpressionListener();
-  // walker.walk(listener, context);
-  // return listener._scalars[context];
-}
+Scalar contextToScalar(ScalarContext context, [CasExpressionVisitor visitor]) =>
+    context.accept(visitor ?? CasExpressionVisitor());
 
-Scalar stringToScalar(String input) => contextToScalar(stringToContext(input));
+Scalar stringToScalar(String input) => contextToScalar(getScalarContext(input));

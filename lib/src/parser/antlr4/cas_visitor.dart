@@ -2,7 +2,8 @@
 
 part of cas.parser.antlr;
 
-/// This abstract class defines a complete generic visitor for a parse tree
+
+/// This abstract class defines a complete generic visitor for a parse tree 
 /// produced by [CasParser].
 ///
 /// [T] is the eturn type of the visit operation. Use `void` for
@@ -38,30 +39,30 @@ abstract class CasVisitor<T> extends ParseTreeVisitor<T> {
   /// Return the visitor result.
   T visitScalarPower(ScalarPowerContext context);
 
-  /// Visit a parse tree produced by [CasParser.scalarFunction].
+  /// Visit a parse tree produced by [CasParser.functionAssignment].
   /// [context] is the parse tree.
   /// Return the visitor result.
-  T visitScalarFunction(ScalarFunctionContext context);
+  T visitFunctionAssignment(FunctionAssignmentContext context);
+
+  /// Visit a parse tree produced by [CasParser.scalarAssignment].
+  /// [context] is the parse tree.
+  /// Return the visitor result.
+  T visitScalarAssignment(ScalarAssignmentContext context);
 
   /// Visit a parse tree produced by [CasParser.scalarProduct].
   /// [context] is the parse tree.
   /// Return the visitor result.
   T visitScalarProduct(ScalarProductContext context);
 
-  /// Visit a parse tree produced by [CasParser.condition].
-  /// [context] is the parse tree.
-  /// Return the visitor result.
-  T visitCondition(ConditionContext context);
-
-  /// Visit a parse tree produced by [CasParser.functionId].
-  /// [context] is the parse tree.
-  /// Return the visitor result.
-  T visitFunctionId(FunctionIdContext context);
-
   /// Visit a parse tree produced by [CasParser.mulOp].
   /// [context] is the parse tree.
   /// Return the visitor result.
   T visitMulOp(MulOpContext context);
+
+  /// Visit a parse tree produced by [CasParser.functionCall].
+  /// [context] is the parse tree.
+  /// Return the visitor result.
+  T visitFunctionCall(FunctionCallContext context);
 
   /// Visit a parse tree produced by [CasParser.floatLiteral].
   /// [context] is the parse tree.
