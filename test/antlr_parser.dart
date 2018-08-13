@@ -1,6 +1,6 @@
 #!/usr/bin/dart
 import 'package:simple_cas/base.dart';
-import 'package:simple_cas/parser.dart';
+import 'package:simple_cas/antlr_parser.dart';
 import 'package:test/test.dart';
 
 void main() {
