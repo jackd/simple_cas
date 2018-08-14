@@ -1,5 +1,6 @@
 #!/usr/bin/dart
 import 'package:simple_cas/parser.dart';
+import 'package:simple_cas/base.dart';
 // import 'package:petitparser/petitparser.dart';
 
 void main() {
@@ -25,8 +26,10 @@ void main() {
   //
   // var parser = SimpleCasParser();
   var def = SimpleCasParserDefinition();
-  var parser = def.build(start: def.expression);
-  print(parser.parse('x^2'));
+  var parser = def.build(start: def.start);
+  var out = parser.parse('x = 2*y');
+  print(out.value.rhs);
+  print(out.value == Assignment(ScalarSymbol('x'), two*ScalarSymbol('y')));
 
   // var result = parser.parse('f(x, y)');
   // print(result);

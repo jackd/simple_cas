@@ -340,11 +340,15 @@ class AnonymousScalarFunction extends Scalar {
 
   Scalar callWithArgs(Iterable<Scalar> args) =>
       definition.substitute(Map.fromIterables(argSymbols, args));
+
+  String toString() => '(${argSymbols.join(', ')}) => $definition';
 }
 
 class ScalarFunctionCall extends Scalar {
   final ScalarSymbol symbol;
   final BuiltList<Scalar> args;
+
+  String toString() => '$symbol(${args.join(', ')})';
 
   const ScalarFunctionCall(this.symbol, this.args);
 
@@ -384,50 +388,6 @@ class ScalarFunctionCall extends Scalar {
   }
 }
 
-// class ScalarFunctionDefinition extends Scalar {
-//   final ScalarSymbol symbol;
-//   final BuiltList<ScalarSymbol> argSymbols;
-//   final Scalar definition;
-//
-//   bool operator ==(Object other) =>
-//       other is ScalarFunctionDefinition &&
-//       other.symbol == symbol &&
-//       other.argSymbols == argSymbols &&
-//       other.definition == definition;
-//
-//   int get hashCode => hash3(symbol, argSymbols, definition);
-//
-//   Scalar callWithArgs(Iterable<Scalar> argValues) {
-//     var map = Map<ScalarSymbol, Scalar>.fromIterables(argSymbols, argValues);
-//     return definition.substitute(map);
-//   }
-//
-//   const ScalarFunctionDefinition(this.symbol, this.argSymbols, this.definition);
-//
-//   @override
-//   @alwaysThrows
-//   Iterable<Scalar> get _children => throw UnimplementedError();
-//
-//   @override
-//   @alwaysThrows
-//   Scalar diff(ScalarSymbol x) => throw UnimplementedError();
-//
-//
-//   @override
-//   @alwaysThrows
-//   Scalar simplify() => throw UnimplementedError();
-//
-//   @override
-//   @alwaysThrows
-//   Scalar substitute(Map<ScalarSymbol, Scalar> map) => throw UnimplementedError();
-// }
-//
-// class ScalarFunctionCall extends Scalar {
-//   final ScalarSymbol symbol;
-//   final BuiltList<Scalar> argValues;
-//
-//   const ScalarFunctionCall(this.symbol, this.argValues);
-// }
 
 Sum sum(Iterable<Scalar> args) => args.reduce((a, b) => Sum(a, b));
 Product product(Iterable<Scalar> args) => args.reduce((a, b) => Product(a, b));

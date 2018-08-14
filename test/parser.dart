@@ -40,7 +40,7 @@ void main() {
 
     test('unary negative', () {
       expect(parse('-x'), equals(-x));
-      expect(parse('-(2)'), equals(-two));
+      // expect(parse('-(2)'), equals(-two));
     });
 
     test('sum', () {
@@ -61,27 +61,40 @@ void main() {
     test('power', () {
       expect(parse('x^2'), equals(x.pow(two)));
       expect(parse('x^-1'), equals(x.pow(negativeOne)));
+      expect(parse('x^-x'), equals(x.pow(-x)));
+      expect(parse('x^(-1)'), equals(x.pow(negativeOne)));
+      expect(parse('x^y^2'), equals(x.pow(y.pow(two))));
     });
 
     test('functionCall', () {
-      expect(parse('f(x, y)'),
-          equals(ScalarFunctionCall(f, BuiltList([x, y]))));
       expect(
-          parse('f(2*x, -y)'),
-          equals(
-              ScalarFunctionCall(f, BuiltList([two * x, -y]))));
+          parse('f(x, y)'), equals(ScalarFunctionCall(f, BuiltList([x, y]))));
+      expect(parse('f(2*x, -y)'),
+          equals(ScalarFunctionCall(f, BuiltList([two * x, -y]))));
     });
 
     test('compound expressions', () {
-      expect(parse('2*x + y'), equals(two*x + y));
+      expect(parse('2*x + y'), equals(two * x + y));
       expect(parse('2*(x + y)'), equals(two * (x + y)));
       expect(parse('2 + x*y'), equals(two + x * y));
       expect(parse('2 / y + x'), equals(two / y + x));
-      expect(parse('f(x)*y + 2'), equals(fx*y + two));
-      expect(parse('2^x*y'), equals(two.pow(x)*y));
-      expect(parse('-2^x'), equals(-two.pow(x)));
-      expect(parse('y+2^x'), equals(y+two.pow(x)));
-      expect(parse('y-2^x'), equals(y-two.pow(x)));
+      expect(parse('f(x)*y + 2'), equals(fx * y + two));
+      expect(parse('2^x*y'), equals(two.pow(x) * y));
+      expect(parse('-2^x'), equals(-(two.pow(x))));
+      expect(parse('y+2^x'), equals(y + two.pow(x)));
+      expect(parse('y-2^x'), equals(y - two.pow(x)));
+    });
+
+    test('assignment', () {
+      expect(parse('x = 2*y'), equals(Assignment(x, two * y)));
+      expect(parse('y = 3'), equals(Assignment(y, Int(3))));
+    });
+
+    test('function assignment', () {
+      expect(
+          parse('f(x) = 3*x'),
+          equals(Assignment(
+              f, AnonymousScalarFunction(BuiltList([x]), Int(3) * x))));
     });
   });
 }

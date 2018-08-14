@@ -24,7 +24,7 @@ class SimpleCasGrammarDefinition extends GrammarDefinition {
   // @override
   Parser start() => ref(statement).end();
   // Parser start() => ref(statement);
-  Parser statement() => ref(expression) | ref(assignment);
+  Parser statement() => ref(assignment) | ref(expression);
 
   Parser powOp() => char('^').trim();
   Parser mulOp() => pattern('*/').trim();
@@ -62,30 +62,25 @@ class SimpleCasGrammarDefinition extends GrammarDefinition {
   Parser multiplicativeExpression() =>
       ref(unaryExpression) & (mulOp() & ref(unaryExpression)).star();
 
-  Parser unaryExpression() =>
-      ref(primary) | ref(negativePrimary) | ref(powerExpression);
+  Parser unaryExpression() => ref(powerExpression) | ref(unaryPrimary);
 
   Parser powerExpression() =>
       unaryNegative().optional() &
       ref(primary) &
       powOp() &
-      (ref(powerExpression) | ref(primary) | ref(negativePrimary));
+      (ref(powerExpression) | ref(unaryPrimary));
 
-  Parser negativePrimary() => unaryNegative() & ref(primary);
-  Parser primary() => ref(literal) | ref(functionCall) | ref(parenExpression);
+  Parser unaryPrimary() => unaryNegative().optional() & ref(primary);
+  Parser primary() => ref(functionCall) | ref(literal) | ref(parenExpression);
 
   Parser functionCall() => id() & leftParen() & argList() & rightParen();
   Parser parenExpression() => leftParen() & ref(expression) & rightParen();
   Parser literal() => floatLiteral() | intLiteral() | symbolLiteral();
 
   Parser symbolLiteral() => ref(id);
-  Parser intLiteral() => unaryNegative().optional() & digit().plus();
+  Parser intLiteral() => digit().plus();
   Parser floatLiteral() =>
-      unaryNegative().optional() &
-      digit().optional() &
-      char('.') &
-      digit().plus() &
-      exponent().optional();
+      digit().optional() & char('.') & digit().plus() & exponent().optional();
 
   Parser exponent() =>
       pattern('eE') & pattern('+-').optional() & digit().plus();

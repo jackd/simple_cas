@@ -14,6 +14,7 @@ class Assignment {
       other is Assignment && other.lhs == lhs && other.rhs == rhs;
 
   int get hashCode => hash2(lhs, rhs);
+  String toString() => '$lhs = $rhs';
 }
 
 class SimpleCasParserDefinition extends SimpleCasGrammarDefinition {
@@ -71,10 +72,6 @@ class SimpleCasParserDefinition extends SimpleCasGrammarDefinition {
       });
 
   @override
-  Parser<Scalar> negativePrimary() =>
-      super.negativePrimary().map<Scalar>((x) => -(x[1] as Scalar));
-
-  @override
   Parser<Scalar> parenExpression() =>
       super.parenExpression().map<Scalar>((x) => x[1] as Scalar);
 
@@ -87,14 +84,26 @@ class SimpleCasParserDefinition extends SimpleCasGrammarDefinition {
           (x) => ScalarFunctionCall(ScalarSymbol(x[0]), x[2]));
 
   @override
-  Parser<Scalar> powerExpression() => super.powerExpression().map((x) {
-        var base = x[1];
-        var exp = x[3];
-        var pow = base.pow(exp);
-        if (x[0] != null) {
-          pow = -pow;
+  Parser<Scalar> unaryPrimary() => super.unaryPrimary().map<Scalar>((x) {
+        var val = x[1];
+        if (x[0] == null) {
+          return val;
+        } else {
+          if (val is Num) {
+            return Num(-(val.value));
+          } else {
+            return -val;
+          }
         }
-        return pow;
+      });
+
+  @override
+  Parser<Scalar> powerExpression() => super.powerExpression().map((x) {
+        var out = x[1].pow(x[3]);
+        if (x[0] != null) {
+          out = -out;
+        }
+        return out;
       });
 
   @override
@@ -132,7 +141,7 @@ class SimpleCasParserDefinition extends SimpleCasGrammarDefinition {
     return super.symbolList().map<BuiltList<ScalarSymbol>>((x) {
       var builder = ListBuilder<ScalarSymbol>()
         ..add(ScalarSymbol(x[0]))
-        ..addAll(x[1].map((xi) => ScalarSymbol(xi[1])));
+        ..addAll(x[1].map<ScalarSymbol>((xi) => ScalarSymbol(xi[1])));
       return builder.build();
     });
   }
