@@ -1,8 +1,7 @@
 analyzer:
   exclude:
-    - 'lib/src/parser/antlr4/*.dart'
-    - 'src/parser/antlr4/*.dart'
-    - 'parser/antlr4/*.dart'
+    strong-mode:
+      implicit-casts: false
 
 # Lint rules and documentation, see http://dart-lang.github.io/linter/lints
 linter:
