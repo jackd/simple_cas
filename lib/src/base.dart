@@ -13,6 +13,9 @@ abstract class Expression {
     yield* _children.expand((c) => c.subExpressions());
   }
 
+  Iterable<ScalarSymbol> variables() =>
+      subExpressions().where((c) => c is ScalarSymbol).cast<ScalarSymbol>();
+
   const Expression();
 }
 
@@ -138,18 +141,19 @@ class Product extends BinaryOperator {
   String _bracketed(Scalar x) => x is Sum ? '($x)' : x.toString();
 
   String toString() {
-    if (left == negativeOne){
+    if (left == negativeOne) {
       return '(-$right)';
     } else {
       var lString = _bracketed(left);
       var rString = _bracketed(right);
-       if (rString.length > 2 && rString.substring(0, 2) == '1/') {
-         return '$lString / ${rString.substring(2)}';
-       } else {
-         return '$lString * $rString';
-       }
+      if (rString.length > 2 && rString.substring(0, 2) == '1/') {
+        return '$lString / ${rString.substring(2)}';
+      } else {
+        return '$lString * $rString';
+      }
     }
   }
+
   Scalar diff(ScalarSymbol x) => left.diff(x) * right + left * right.diff(x);
 
   @override
@@ -387,7 +391,6 @@ class ScalarFunctionCall extends Scalar {
     }
   }
 }
-
 
 Sum sum(Iterable<Scalar> args) => args.reduce((a, b) => Sum(a, b));
 Product product(Iterable<Scalar> args) => args.reduce((a, b) => Product(a, b));

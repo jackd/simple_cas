@@ -1,3 +1,3 @@
 library simple_cas.graph;
 
-export 'src/graph.dart';
+export 'src/graph/graph.dart';
